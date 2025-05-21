@@ -22,7 +22,7 @@ def get_iata_code(city_name):
     response = requests.get(url, headers=headers)
     data = response.json()
     try:
-        return res["data"][0]["iataCode"]
+        return data["data"][0]["iataCode"]
     except:
         return None
 
