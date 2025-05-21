@@ -7,5 +7,5 @@ This is a Flask-based webhook for Dialogflow that integrates with the Amadeus AP
 1. **Clone the repository:**
 
    ```bash
-   git clone https://github.com/yourusername/dialogflow-whatsapp-flight-bot.git
-   cd dialogflow-whatsapp-flight-bot
+   https://github.com/sambasnet/flight_bot.git
+   cd flight-bot
