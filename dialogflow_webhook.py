@@ -16,14 +16,11 @@ def get_amadeus_token():
     res = requests.post(url, data=payload)
     return res.json()["access_token"]
 
-def get_iata_code(city_name, token):
-    url = "https://test.api.amadeus.com/v1/reference-data/locations"
+def get_iata_code(city_name):
+    url = f"https://test.api.amadeus.com/v1/reference-data/locations?subType=CITY&keyword={city_name}"
     headers = {"Authorization": f"Bearer {token}"}
-    params = {
-        "keyword": city_name,
-        "subType": "CITY"
-    }
-    res = requests.get(url, headers=headers, params=params).json()
+    response = requests.get(url, headers=headers)
+    data = response.json()
     try:
         return res["data"][0]["iataCode"]
     except:
