@@ -1,116 +1,111 @@
 from flask import Flask, request, jsonify
 import requests
-import os
 import datetime
+from dateutil.parser import parse
 
 app = Flask(__name__)
 
-# Replace with your actual Amadeus API credentials
-AMADEUS_CLIENT_ID = "vKUpfPJalE4qdORBvtMAndwOQIAyGZ6u"
-AMADEUS_CLIENT_SECRET = "jJyg4CimyfFfxnSF"
-ACCESS_TOKEN = None
+# Amadeus API Credentials (replace with yours)
+AMADEUS_API_KEY = 'your_amadeus_api_key'
+AMADEUS_API_SECRET = 'your_amadeus_api_secret'
 
-# Get Amadeus access token
+# Get Amadeus token
 def get_amadeus_token():
     url = "https://test.api.amadeus.com/v1/security/oauth2/token"
-    payload = {
-        "grant_type": "client_credentials",
-        "client_id": AMADEUS_CLIENT_ID,
-        "client_secret": AMADEUS_CLIENT_SECRET,
+    data = {
+        'grant_type': 'client_credentials',
+        'client_id': AMADEUS_API_KEY,
+        'client_secret': AMADEUS_API_SECRET
     }
-    response = requests.post(url, data=payload)
-    return response.json().get("access_token")
+    response = requests.post(url, data=data)
+    return response.json().get('access_token')
 
-# Convert city name to IATA code
-def get_iata_code(city_name, access_token):
-    url = f"https://test.api.amadeus.com/v1/reference-data/locations?subType=CITY&keyword={city_name}"
-    headers = {"Authorization": f"Bearer {access_token}"}
-    response = requests.get(url, headers=headers)
+# Convert city name to IATA code using Amadeus API
+def get_iata_code(city_name, token):
+    url = f"https://test.api.amadeus.com/v1/reference-data/locations"
+    params = {
+        'keyword': city_name,
+        'subType': 'CITY'
+    }
+    headers = {
+        'Authorization': f'Bearer {token}'
+    }
+    response = requests.get(url, headers=headers, params=params)
+    data = response.json()
     try:
-        return response.json()['data'][0]['iataCode']
+        return data['data'][0]['iataCode']
     except:
         return None
 
-# Search flights
-def search_flights(origin, destination, date, access_token):
-    url = "https://test.api.amadeus.com/v2/shopping/flight-offers"
-    params = {
-        "originLocationCode": origin,
-        "destinationLocationCode": destination,
-        "departureDate": date,
-        "adults": 1,
-        "nonStop": False,
-        "max": 3  # Limit to 3 flights
-    }
-    headers = {"Authorization": f"Bearer {access_token}"}
-    response = requests.get(url, headers=headers, params=params)
-    return response.json()
-
-@app.route('/webhook', methods=['POST'])
-def dialogflow_webhook():
-    global ACCESS_TOKEN
-
+# Handle the webhook call
+@app.route("/webhook", methods=["POST"])
+def webhook():
     req = request.get_json()
-    parameters = req["queryResult"]["parameters"]
-    origin = parameters.get("origin", [None])[0]
-    destination = parameters.get("destination", [None])[0]
-    date = parameters.get("date", [None])[0]
 
-    if not origin or not destination or not date:
+    try:
+        origin = req['queryResult']['parameters']['origin'][0]
+        destination = req['queryResult']['parameters']['destination'][0]
+        raw_date = req['queryResult']['parameters']['date'][0]
+    except Exception:
         return jsonify({
-            "fulfillmentText": "Please provide origin, destination, and travel date."
+            "fulfillmentText": "Sorry, I couldn't extract flight details. Can you rephrase?"
         })
 
-    # Get token if not set
-    if not ACCESS_TOKEN:
-        ACCESS_TOKEN = get_amadeus_token()
+    # Parse the date
+    try:
+        travel_date = parse(raw_date).strftime('%Y-%m-%d')
+    except:
+        return jsonify({
+            "fulfillmentText": "Please provide the travel date in a valid format like June 30 or 2025-06-30."
+        })
 
-    # Convert city names to IATA codes
-    origin_code = get_iata_code(origin, ACCESS_TOKEN)
-    destination_code = get_iata_code(destination, ACCESS_TOKEN)
+    token = get_amadeus_token()
+    if not token:
+        return jsonify({
+            "fulfillmentText": "Unable to authenticate with the flight service. Please try again later."
+        })
+
+    # Get IATA codes
+    origin_code = get_iata_code(origin, token)
+    destination_code = get_iata_code(destination, token)
 
     if not origin_code or not destination_code:
         return jsonify({
             "fulfillmentText": "Invalid city name. Please try again."
         })
 
-    # Format the date
-    try:
-        formatted_date = datetime.datetime.strptime(date, "%Y-%m-%d").strftime("%Y-%m-%d")
-    except:
+    if origin_code == destination_code:
         return jsonify({
-            "fulfillmentText": "Please provide the date in YYYY-MM-DD format."
+            "fulfillmentText": "Origin and destination can't be the same. Please enter different cities."
         })
 
     # Search for flights
-    flight_data = search_flights(origin_code, destination_code, formatted_date, ACCESS_TOKEN)
+    flight_url = "https://test.api.amadeus.com/v2/shopping/flight-offers"
+    headers = {'Authorization': f'Bearer {token}'}
+    params = {
+        'originLocationCode': origin_code,
+        'destinationLocationCode': destination_code,
+        'departureDate': travel_date,
+        'adults': 1,
+        'nonStop': False,
+        'max': 3
+    }
 
-    # Parse flight offers
+    res = requests.get(flight_url, headers=headers, params=params)
+    data = res.json()
+
     try:
-        offers = flight_data["data"]
-        response_lines = []
+        offers = data['data']
+        flights = []
         for offer in offers:
-            itinerary = offer["itineraries"][0]
-            segments = itinerary["segments"]
-            departure = segments[0]["departure"]["at"]
-            arrival = segments[-1]["arrival"]["at"]
-            duration = itinerary["duration"]
-            price = offer["price"]["total"]
-            response_lines.append(
-                f"✈️ Flight: {origin_code} to {destination_code}\n"
-                f"🕓 Departure: {departure}\n"
-                f"🛬 Arrival: {arrival}\n"
-                f"⏱️ Duration: {duration}\n"
-                f"💰 Price: ${price}\n"
-                "-------------------"
-            )
-        return jsonify({
-            "fulfillmentText": "\n\n".join(response_lines)
-        })
-    except:
-        return jsonify({
-            "fulfillmentText": "Sorry, no flights found or something went wrong."
-        })
+            price = offer['price']['total']
+            itinerary = offer['itineraries'][0]['segments'][0]
+            dep = itinerary['departure']
+            arr = itinerary['arrival']
+            airline = itinerary['carrierCode']
+            flights.append(f"✈️ {airline} | {dep['iataCode']} → {arr['iataCode']} at {dep['at']} | ₹{price}")
+        reply = "\n\n".join(flights)
+    except Exception:
+        reply = "No flights found for the given cities and date. Try a different search."
 
-if __name__ == '__main__':
-    app.run(debug=True)
+    return jsonify({"fulfillmentText": reply})
