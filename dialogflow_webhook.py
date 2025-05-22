@@ -6,8 +6,8 @@ from dateutil.parser import parse
 app = Flask(__name__)
 
 # Amadeus API Credentials (replace with yours)
-AMADEUS_API_KEY = 'your_amadeus_api_key'
-AMADEUS_API_SECRET = 'your_amadeus_api_secret'
+AMADEUS_API_KEY = 'vKUpfPJalE4qdORBvtMAndwOQIAyGZ6u'
+AMADEUS_API_SECRET = 'jJyg4CimyfFfxnSF'
 
 # Get Amadeus token
 def get_amadeus_token():
