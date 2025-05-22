@@ -80,7 +80,7 @@ def webhook():
         'destinationLocationCode': destination_code,
         'departureDate': travel_date,
         'adults': 1,
-        'nonStop': False,
+        'nonStop': "false",
         'max': 3
     }
 
