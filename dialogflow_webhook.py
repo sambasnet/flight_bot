@@ -17,7 +17,7 @@ def get_amadeus_token():
     return res.json()["access_token"]
 
 def get_iata_code(city_name,token):
-    url = f"https://test.api.amadeus.com/v1/reference-data/locations?subType=CITY&keyword={city_name}"
+    url = f"https://test.api.amadeus.com/v1/reference-data/locations/cities?keyword={city_name}&max=1000"
     headers = {"Authorization": f"Bearer {token}"}
     response = requests.get(url, headers=headers)
     data = response.json()
