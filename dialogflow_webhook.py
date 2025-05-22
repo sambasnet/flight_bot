@@ -87,7 +87,7 @@ def webhook():
     res = requests.get(flight_url, headers=headers, params=params)
     data = res.json()
 
-ry:
+    try:
         offers = data['data']
         flights = []
         for offer in offers:
@@ -100,11 +100,5 @@ ry:
         reply = "\n\n".join(flights)
     except Exception:
         reply = "No flights found for the given cities and date. Try a different search."
-
-
-except Exception as e:
-    print(f"[General Error] {e}")
-    reply = "⚠️ An error occurred while searching for flights. Please try again later."
-
 
     return jsonify({"fulfillmentText": reply})
