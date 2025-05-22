@@ -21,19 +21,12 @@ def get_amadeus_token():
     return response.json().get('access_token')
 
 # Convert city name to IATA code using Amadeus API
-def get_iata_code(city_name, token):
-    url = f"https://test.api.amadeus.com/v1/reference-data/locations"
-    params = {
-        'keyword': city_name,
-        'subType': 'CITY'
-    }
-    headers = {
-        'Authorization': f'Bearer {token}'
-    }
-    response = requests.get(url, headers=headers, params=params)
-    data = response.json()
+def get_iata_code(city_name, access_token):
+    url = f"https://test.api.amadeus.com/v1/reference-data/locations?subType=CITY&keyword={city_name}"
+    headers = {"Authorization": f"Bearer {access_token}"}
+    response = requests.get(url, headers=headers)
     try:
-        return data['data'][0]['iataCode']
+        return response.json()['data'][0]['iataCode']
     except:
         return None
 
