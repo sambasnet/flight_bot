@@ -87,42 +87,20 @@ def webhook():
     res = requests.get(flight_url, headers=headers, params=params)
     data = res.json()
 
-   try:
-    offers = data.get('data', [])
-
-    if not offers:
-        reply = "❌ No flight offers found for the given cities and date."
-    else:
+ry:
+        offers = data['data']
         flights = []
-
         for offer in offers:
-            try:
-                price = offer['price']['total']
-                currency = offer['price']['currency']
-                itinerary = offer['itineraries'][0]
-                segments = itinerary.get('segments', [])
+            price = offer['price']['total']
+            itinerary = offer['itineraries'][0]['segments'][0]
+            dep = itinerary['departure']
+            arr = itinerary['arrival']
+            airline = itinerary['carrierCode']
+            flights.append(f"✈️ {airline} | {dep['iataCode']} → {arr['iataCode']} at {dep['at']} | ₹{price}")
+        reply = "\n\n".join(flights)
+    except Exception:
+        reply = "No flights found for the given cities and date. Try a different search."
 
-                if not segments:
-                    continue
-
-                # Handle multi-segment flights
-                first_seg = segments[0]
-                last_seg = segments[-1]
-
-                dep_code = first_seg['departure'].get('iataCode', 'N/A')
-                arr_code = last_seg['arrival'].get('iataCode', 'N/A')
-                dep_time = first_seg['departure'].get('at', 'N/A')
-                duration = itinerary.get('duration', 'N/A')
-                airline = first_seg.get('carrierCode', 'N/A')
-
-                flights.append(
-                    f"✈️ {airline} | {dep_code} → {arr_code}\n🕒 {dep_time} ⏱ {duration}\n💰 ₹{price} {currency}"
-                )
-            except Exception as e:
-                print(f"[Offer Parse Error] {e}")
-                continue
-
-        reply = "\n\n".join(flights) if flights else "❌ No valid flight details could be parsed."
 
 except Exception as e:
     print(f"[General Error] {e}")
