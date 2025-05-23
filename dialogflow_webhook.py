@@ -68,6 +68,7 @@ def webhook():
         'destinationLocationCode': destination_code,
         'departureDate': travel_date,
         'adults': 1,
+        'nonStop': "false",
         'max': 1
     }
 
