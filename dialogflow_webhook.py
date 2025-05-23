@@ -24,7 +24,7 @@ def get_amadeus_token():
 def get_iata_code(city_name, access_token):
     url = f"https://test.api.amadeus.com/v1/reference-data/locations?subType=CITY&keyword={city_name}"
     headers = {"Authorization": f"Bearer {access_token}"}
-    response = requests.get(url, headers=headers)
+    response = requests.get(url, headers=headers, timeout=2)
     try:
         return response.json()['data'][0]['iataCode']
     except:
@@ -61,16 +61,6 @@ def webhook():
     # Get IATA codes
     origin_code = get_iata_code(origin, token)
     destination_code = get_iata_code(destination, token)
-
-    if not origin_code or not destination_code:
-        return jsonify({
-            "fulfillmentText": "Invalid city name. Please try again."
-        })
-
-    if origin_code == destination_code:
-        return jsonify({
-            "fulfillmentText": "Origin and destination can't be the same. Please enter different cities."
-        })
 
     # Search for flights
     flight_url = "https://test.api.amadeus.com/v2/shopping/flight-offers"
