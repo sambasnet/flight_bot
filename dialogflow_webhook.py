@@ -24,7 +24,7 @@ def get_amadeus_token():
 def get_iata_code(city_name, access_token):
     url = f"https://test.api.amadeus.com/v1/reference-data/locations?subType=CITY&keyword={city_name}"
     headers = {"Authorization": f"Bearer {access_token}"}
-    response = requests.get(url, headers=headers, timeout=2)
+    response = requests.get(url, headers=headers, timeout=4)
     try:
         return response.json()['data'][0]['iataCode']
     except:
