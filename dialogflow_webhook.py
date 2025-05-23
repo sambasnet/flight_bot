@@ -60,12 +60,6 @@ def webhook():
         origin_code = get_iata_code(origin, token)
         destination_code = get_iata_code(destination, token)
 
-        if not origin_code or not destination_code:
-            return jsonify({"fulfillmentText": "Invalid city name. Please check your origin and destination."})
-
-        if origin_code == destination_code:
-            return jsonify({"fulfillmentText": "Origin and destination can't be the same."})
-
         # Search flights
         flight_url = "https://test.api.amadeus.com/v2/shopping/flight-offers"
         headers = {'Authorization': f'Bearer {token}'}
@@ -74,6 +68,7 @@ def webhook():
             'destinationLocationCode': destination_code,
             'departureDate': travel_date,
             'adults': 1,
+            'nonStop': "false",
             'max': 3
         }
 
