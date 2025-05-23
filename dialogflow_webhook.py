@@ -84,7 +84,7 @@ def webhook():
         'max': 3
     }
 
-    res = requests.get(flight_url, headers=headers, params=params)
+    res = requests.get(flight_url, headers=headers, params=params,timeout=4)
     data = res.json()
 
     try:
@@ -102,3 +102,5 @@ def webhook():
         reply = "No flights found for the given cities and date. Try a different search."
 
     return jsonify({"fulfillmentText": reply})
+if __name__=="__main__":
+    app.run(debug=True)
